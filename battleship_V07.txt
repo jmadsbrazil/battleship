@@ -1,0 +1,220 @@
+'''
+* Improvement in this version: Changing the background color of a text in the terminal.
+
+'''
+import random
+import pygame
+import colorama  # import the colorama module
+
+# Initialize the colorama module to work with Windows terminal
+colorama.init()
+
+# Initialize Pygame Mixer for sound effects
+pygame.mixer.init()
+
+
+# Load the explosion sound
+explosion_sound = pygame.mixer.Sound('C:\\Users\\julia\\Documents\\Oulton\\07_Python\\Programs\\sounds\\water_explosion.wav')
+
+# Define a function to validate input for board size and number of ships
+def validate_input(prompt, low, high):
+    while True:
+        try:
+            value = int(input(prompt))
+        except ValueError:
+            print("Invalid input. Please enter an integer.")
+            continue
+        if value < low or value > high:
+            print("Invalid input. Please enter a value between", low, "and", high, ".")
+            continue
+        return value
+
+# Define the function to create the board
+def create_board(rows, columns):
+    board = []
+    for i in range(rows):
+        row = []
+        for j in range(columns):
+            row.append("~")
+        board.append(row)
+    return board
+
+# Define the function to print the board and importing the necessary modules
+from colorama import init, Fore, Back, Style
+
+# Initialize the colorama module
+init()
+
+# Define the function to print the board
+def print_board(board, hidden_ships=False):
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    print("  ", end="")
+    for i in range(len(board[0])):
+        print(i, end=" ")
+    print()
+    for i in range(len(board)):
+        print(letters[i], end=" ")
+        for j in range(len(board[i])):
+            if board[i][j] == "n":
+                print(Back.BLUE + "~" + Back.RESET, end=" ")
+            elif board[i][j] == "a" and (len(board[i][j]) == 1 or (len(board[i][j]) > 1 and board[i][j+1] != "a")):
+                if hidden_ships or board[i][j] == "a":
+                    print(Back.CYAN + "~" + Back.RESET, end=" ")
+                else:
+                    print(Fore.WHITE + board[i][j] + Style.RESET_ALL, end=" ")
+            elif board[i][j] in ["s", "d", "c", "p"] and len(board[i][j]) == 1:
+                if hidden_ships:
+                    print(Back.CYAN + "~" + Back.RESET, end=" ")
+                else:
+                    print(Fore.WHITE + board[i][j] + Style.RESET_ALL, end=" ")
+            else:
+                print(Fore.WHITE + board[i][j] + Style.RESET_ALL, end=" ")
+        print()
+    print('\n')
+
+
+# Define the function to place the ships
+import random
+
+def place_ships(board, num_ships):
+    rows = len(board)
+    columns = len(board[0])
+    ships = {"submarine": 1, "destroyer": 2, "cruiser": 3, "aircraft carrier": 4}
+    total_ships = sum(ships.values())
+    if num_ships > total_ships:
+        num_ships = total_ships
+    for ship in list(ships.keys())[:num_ships]:
+        placed = False
+        while not placed:
+            row = random.randint(0, rows - 1)
+            column = random.randint(0, columns - 1)
+            orientation = random.randint(0, 1)
+            if orientation == 0:
+                if column + ships[ship] <= columns:
+                    placed = True
+                    for j in range(ships[ship]):
+                        if board[row][column+j] != "~":
+                            placed = False
+            else:
+                if row + ships[ship] <= rows:
+                    placed = True
+                    for j in range(ships[ship]):
+                        if board[row+j][column] != "~":
+                            placed = False
+        if orientation == 0:
+            for j in range(ships[ship]):
+                board[row][column+j] = str(random.randint(100, 999))
+                if ship == "aircraft carrier":
+                    board[row][column+j] = "a" + str(random.randint(100, 999))
+        else:
+            for j in range(ships[ship]):
+                board[row+j][column] = str(random.randint(100, 999))
+                if ship == "aircraft carrier":
+                    board[row+j][column] = "a" + str(random.randint(100, 999))
+    return board, ships
+
+
+# Define the function to check if the game is over
+def check_end(board):
+    for i in range(len(board)):
+        for j in range(len(board[0])):
+            if board[i][j] in ["s", "d", "c", "p"]:
+                return False
+    return True
+
+# Define the function to check if the input row is valid
+def get_row(board_size):
+    row = input("Guess the row (or type 'quit' to quit the game): ")
+    if row.lower() == 'quit':
+        return -1
+    while len(row) != 1 or not ("A" <= row.upper() <= chr(ord("A") + board_size - 1)): 
+        print("Invalid row. Please enter a letter between A and {} or 'quit' to quit the game.".format(chr(ord("A") + board_size - 1)))
+        row = input("Guess the row (or type 'quit' to quit the game): ")
+        if row.lower() == 'quit':
+            return -1
+    return row.upper()
+
+# Define the function to check if the entered column is valid
+def get_column(board_size):
+    column = input("Guess the column ({} digits): ".format(len(str(board_size-1))))
+    if column.lower() == 'quit':
+        return -1
+    while not column.isnumeric() or not (0 <= int(column) < board_size) or len(column) != len(str(board_size-1)):
+        print("Invalid column. Insert a {}-digit number between 0 and {} or 'quit' to exit the game.".format(len(str(board_size-1)), board_size - 1))
+        column = input("Guess the column ({} digits): ".format(len(str(board_size-1))))
+        if column.lower() == 'quit':
+            return -1
+    return int(column)
+
+# Define the function to print the message to quit the game
+def quit_game():
+    print("You quit the game!")
+    return True
+
+# Define the main game function
+def play_battleship():
+
+    # Asks the player to enter the board size
+    board_size = validate_input("Enter the board size (between 5 and 10): ", 5, 10)
+
+    # Asks the player to enter the number of ships
+    num_ships = validate_input("Enter the number of ships (between 1 and {}): ".format(board_size - 1), 1, board_size - 1)
+
+    # Creates the board and positions the ships
+    board = create_board(board_size, board_size)
+    place_ships(board, num_ships)
+    attempts = 2 * board_size
+    remaining_ships = num_ships
+    hidden_ships = True
+
+    # Starts the game
+    while attempts > 0 and remaining_ships > 0:
+        print("You have", attempts, "attempts remaining.")
+
+        # Checks if the player wants to reveal the ships
+        if hidden_ships:
+            reveal_ships = input("Do you want to reveal the ships' positions? (y/n) ")
+            if reveal_ships.lower() == 'y':
+                print_board(board, hidden_ships=False)
+                hidden_ships = False
+
+        print_board(board, hidden_ships=True)
+        guess_row = get_row(board_size)
+        if guess_row == -1:
+            quit_game()
+            return
+
+        guess_column = get_column(board_size)
+        if guess_column == -1:
+            quit_game()
+            return
+
+        row = ord(guess_row) - ord("A")
+        if board[row][guess_column] == "~":
+            print("Miss!\n")
+            board[row][guess_column] = "n"
+            attempts -= 1
+        elif board[row][guess_column] == "x":
+            print("You already tried that position!")
+        if board[row][guess_column] != "~" and board[row][guess_column] not in ["n", "x"]:
+            ship = board[row][guess_column]
+            board[row][guess_column] = "x"
+            explosion_sound.play()
+            print("Hit a", ship + "!")
+            remaining_ships -= 1
+            if remaining_ships == 0:
+                print("Congratulations, you won!")
+                play_again = input("Do you want to play again? (y/n) ")
+                if play_again == "y":
+                    play_battleship()
+                else:
+                    return
+        if attempts == 0:
+            print("You ran out of attempts! Game over.")
+            play_again = input("Do you want to play again? (y/n) ")
+            if play_again == "y":
+                play_battleship()
+            else:
+                return
+        
+play_battleship()
